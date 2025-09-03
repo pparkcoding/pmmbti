@@ -349,7 +349,7 @@ ${text}`); copyBtn.textContent='복사 완료 ✅'; setTimeout(()=>copyBtn.textC
     // ====== Events ======
     document.getElementById('submitBtn').addEventListener('click', ()=>{ const res=computeScores(); if(!res.ok){alert(res.reason);return;} renderResult(res); });
     document.getElementById('resetBtn').addEventListener('click', ()=>{ formEl.querySelectorAll('input[type="range"]').forEach(el=>el.value=3); resultSection.style.display='none'; updateProgress(); window.scrollTo({top:0,behavior:'smooth'}); });
-    formEl.addEventListener('input', (e)=>{ if(e.target && e.target.matches('input[type="range"])')) updateProgress(); });
+    formEl.addEventListener('input', (e)=>{ if(e.target && e.target.matches('input[type="range"]')) updateProgress(); });
 
     // ====== Init ======
     renderQuestions(); updateProgress();
