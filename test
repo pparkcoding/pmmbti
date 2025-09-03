@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PM Type Finder – Prototype (No-CDN)</title>
+  <meta name="description" content="PM 유형별 MBTI 스타일 테스트 (8가지 유형) – 사용자/비즈니스, 데이터/직관, 플래너/빌더 3축으로 진단" />
+  <meta name="theme-color" content="#0b1220" />
+  <style>
+    :root{
+      --bg:#0b1220; --fg:#e5e7eb; --muted:#94a3b8; --glass:rgba(255,255,255,.06); --line:rgba(255,255,255,.08);
+      --primary:#38bdf8; --accent:#34d399; --ink:#0b1220;
+    }
+    html,body{height:100%;}
+    body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Noto Sans KR, Arial, Apple Color Emoji, Segoe UI Emoji;}
+    .container{max-width:960px;margin:0 auto;padding:24px;}
+    .row{display:flex;gap:12px;align-items:center;justify-content:space-between;}
+    .muted{color:var(--muted);} .small{font-size:12px;} .xsmall{font-size:11px;}
+    .title{font-weight:800;letter-spacing:.2px;font-size:28px;margin:0 0 6px;}
+    .btn{border:none;border-radius:9999px;padding:10px 16px;font-weight:700;cursor:pointer;transition:.2s;}
+    .btn-primary{background:var(--primary);color:#000;} .btn-primary:hover{filter:brightness(1.1)}
+    .btn-ghost{background:rgba(255,255,255,.1);color:var(--fg);} .btn-ghost:hover{background:rgba(255,255,255,.18)}
+    .card{background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:16px;}
+    .grid{display:grid;gap:12px;} .g2{grid-template-columns:repeat(2,minmax(0,1fr));}
+    @media (max-width:780px){.g2{grid-template-columns:1fr;}}
+    .pill{border-radius:9999px}
+    .progress{height:8px;background:rgba(255,255,255,.08);border-radius:9999px;overflow:hidden}
+    .bar{height:100%;width:0;background:var(--primary);transition:width .25s ease}
+    .qcard{padding:16px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10)}
+    .qhead{display:flex;gap:10px}
+    .qidx{color:var(--muted);font-size:12px;min-width:40px}
+    .range{width:100%}
+    /* custom slider */
+    input[type=range]{-webkit-appearance:none;appearance:none;width:100%;background:transparent}
+    input[type=range]::-webkit-slider-runnable-track{height:6px;background:rgba(255,255,255,.15);border-radius:9999px}
+    input[type=range]::-moz-range-track{height:6px;background:rgba(255,255,255,.15);border-radius:9999px}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;margin-top:-6px;width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--ink)}
+    input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--ink)}
+    .barrow{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+    .meter{height:12px;background:rgba(255,255,255,.1);border-radius:10px;overflow:hidden}
+    .meter>div{height:100%;background:var(--primary);}
+    .list{margin:0;padding-left:18px}
+    .list li{margin:.2rem 0}
+    .tag{display:inline-block;padding:4px 10px;border-radius:9999px;background:#0ea5e91a;border:1px solid #0ea5e933;color:#7dd3fc;font-weight:700}
+    .spacer{height:8px}
+  </style>
+</head>
+<body>
+  <header class="container">
+    <div class="row">
+      <div>
+        <h1 class="title">PM Type Finder <span style="color:var(--primary)">(Prototype)</span></h1>
+        <p class="muted">3가지 축(사용자↔비즈니스 / 데이터↔직관 / 플래너↔빌더)으로 진단하고 조합으로 8가지 유형을 판별합니다.</p>
+      </div>
+      <a href="#test" class="btn btn-primary">테스트 시작</a>
+    </div>
+    <div class="spacer"></div>
+    <div class="grid g2">
+      <div class="card"><div class="small muted">축 #1</div><div>사용자(User) ↔ 비즈니스(Biz)</div></div>
+      <div class="card"><div class="small muted">축 #2</div><div>데이터(Data) ↔ 직관(Intuition)</div></div>
+      <div class="card"><div class="small muted">축 #3</div><div>플래너(Planner) ↔ 빌더(Builder)</div></div>
+    </div>
+  </header>
+
+  <main id="test" class="container">
+    <!-- Progress -->
+    <div>
+      <div class="row" style="margin-bottom:6px">
+        <div class="small muted">완료율</div>
+        <div class="small muted"><span id="progressCount">0</span>/15</div>
+      </div>
+      <div class="progress"><div id="progressBar" class="bar"></div></div>
+    </div>
+
+    <!-- Questions -->
+    <div id="quizForm" class="grid" style="margin-top:14px"></div>
+
+    <!-- Actions -->
+    <div class="row" style="gap:8px;margin-top:14px;flex-wrap:wrap">
+      <button id="submitBtn" type="button" class="btn btn-primary">결과 보기</button>
+      <button id="resetBtn" type="button" class="btn btn-ghost">초기화</button>
+    </div>
+
+    <!-- Result -->
+    <section id="resultSection" style="display:none;margin-top:22px" class="grid g2">
+      <div class="card">
+        <div class="row" style="align-items:flex-start">
+          <div>
+            <h2 id="typeTitle" style="margin:0 0 4px;font-size:24px;font-weight:800"></h2>
+            <div id="typeCode" class="small muted"></div>
+            <p id="typeTagline" style="margin:10px 0 0"></p>
+          </div>
+          <div style="text-align:right">
+            <div class="xsmall muted">공유</div>
+            <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;justify-content:flex-end">
+              <button id="shareBtn" class="btn btn-ghost xsmall">웹 공유</button>
+              <button id="copyBtn" class="btn btn-ghost xsmall">복사</button>
+              <button id="printBtn" class="btn btn-ghost xsmall">PDF</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="small muted" style="margin-bottom:6px">나의 프로필</div>
+        <div id="profileBars" class="grid"></div>
+        <canvas id="radar" width="480" height="360" style="margin-top:12px;width:100%;height:auto"></canvas>
+      </div>
+
+      <div class="card">
+        <div class="small muted" style="margin-bottom:6px">강점 · 리스크 · 협업 팁</div>
+        <div id="traitLists" class="grid"></div>
+      </div>
+
+      <div class="card">
+        <div class="small muted">보완 파트너 추천</div>
+        <p id="partnerTip" class="muted" style="margin-top:6px"></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="container muted small" style="padding-bottom:40px">© 2025 PM Type Finder – Prototype</footer>
+
+  <script>
+    // ====== Model ======
+    const AXES = {
+      F: { anchor: 'U', labelPos: 'User', labelNeg: 'Biz', long: '사용자↔비즈니스' },
+      D: { anchor: 'D', labelPos: 'Data', labelNeg: 'Intuition', long: '데이터↔직관' },
+      E: { anchor: 'P', labelPos: 'Planner', labelNeg: 'Builder', long: '플래너↔빌더' },
+    };
+
+    const QUESTIONS = [
+      { id: 1, axis: 'F', polePositive: 'U', text: '기능 우선순위에서 사용자 페인포인트가 매출 임팩트보다 더 중요하다.' },
+      { id: 2, axis: 'F', polePositive: 'B', text: '단기 수익성이 낮으면 사용자 만족도가 높아도 출시를 미룬다.' },
+      { id: 3, axis: 'F', polePositive: 'B', text: 'NPS가 소폭 하락하더라도 ARPU가 오르면 수용 가능하다.' },
+      { id: 4, axis: 'F', polePositive: 'U', text: 'PRD 작성 시 "사용자 스토리"를 가장 먼저 정리한다.' },
+      { id: 5, axis: 'F', polePositive: 'B', text: '핵심 KPI는 전환율/매출 지표가 UX 지표보다 더 우선이다.' },
+      { id: 6, axis: 'D', polePositive: 'D', text: '의사결정 전에 최소 샘플크기/유의수준 등을 확인한다.' },
+      { id: 7, axis: 'D', polePositive: 'I', text: '경쟁사 성공사례나 팀의 감이 데이터보다 빠르게 방향을 잡아준다.' },
+      { id: 8, axis: 'D', polePositive: 'D', text: 'A/B 테스트 결과가 모호하면 더 많은 데이터를 모을 때까지 보류한다.' },
+      { id: 9, axis: 'D', polePositive: 'I', text: '숫자가 애매할 때는 리더의 비전이 명확하면 밀어붙인다.' },
+      { id:10, axis: 'D', polePositive: 'D', text: '대시보드가 없는 영역에서는 일을 시작하기 부담스럽다.' },
+      { id:11, axis: 'E', polePositive: 'P', text: '릴리즈 전에 엣지 케이스를 체크리스트로 꼼꼼히 점검한다.' },
+      { id:12, axis: 'E', polePositive: 'B', text: '완벽하진 않아도 1주 내 프로토타입을 만들어 사용자에게 보여준다.' },
+      { id:13, axis: 'E', polePositive: 'P', text: '로드맵은 분기 단위로 확정해 두는 편이다.' },
+      { id:14, axis: 'E', polePositive: 'B', text: '팀이 막히면 직접 툴/쿼리/디자인을 손대서라도 돌파한다.' },
+      { id:15, axis: 'E', polePositive: 'P', text: '프로세스 문서화가 빠른 실험보다 더 중요하다.' },
+    ];
+
+    const TYPE_MAP = {
+      'U-D-P': { name: 'UX 아키텍트 🧭', tagline: '데이터로 사용자 문제를 설계하고, 프로세스로 안정적으로 딜리버리', strengths: ['사용자 페인포인트 정밀 정의','지표 기반 우선순위','품질·리스크 관리 우수'], risks: ['속도 저하(분석 과잉)','실험 비용 증가','혁신보다는 안정 치우침'], tips: ['가벼운 실험 슬롯 유지','핵심 KPI 3개 이하','프로토타입 주기 고정(월1)'] },
+      'U-D-B': { name: '그로스 메이커 🔧📊', tagline: '유저 집착 + 데이터 실험으로 가설을 빠르게 검증', strengths: ['빠른 가설→실험→학습 루프','온보딩/전환 최적화','정량 근거로 설득력'], risks: ['장기 로드맵 부재','브랜드/일관성 희석','기술부채 누적'], tips: ['분기 리팩터링 스프린트','북극성 지표 명확화','실험 아카이브 구축'] },
+      'U-I-P': { name: '사용자 큐레이터 🎨', tagline: '직관으로 페인포인트 포착, 프로세스로 품질 담보', strengths: ['정성 인사이트 강점','서베이/인터뷰 운영','런칭 품질 안정'], risks: ['과학적 검증 부족','스케일링 속도 저하','설득 난이도'], tips: ['정량 가설 프레이밍','PMF 이후 스케일 지표','가벼운 A/B 문화'] },
+      'U-I-B': { name: '프로토타입 메이커 🛠️', tagline: '유저에 집착하며 시제품을 빠르게 만들고 검증', strengths: ['시장/유저 반응 포착','속도·탐색 강점','창의적 솔루션'], risks: ['데이터/안정성 부족','학습 기록 부재','조직 동기화 어려움'], tips: ['실험 기록 표준화','주간 회고·러닝 쉐어','MVP 후 품질 게이트'] },
+      'B-D-P': { name: 'ROI 전략가 📈', tagline: '수익/효율을 설계해 계획적으로 실행', strengths: ['비즈 임팩트 선명','예측/예산 정합','리스크 통제'], risks: ['유저 감동 미스','보수적 의사결정','탐색 부채'], tips: ['정성 인터뷰 동행','탐색 예산 10~15%','NPS·CES 보조 KPI'] },
+      'B-D-B': { name: '그로스 오퍼레이터 ⚡', tagline: '비즈니스 임팩트를 위해 실험과 자동화를 과감히 집행', strengths: ['매출/전환 개선','퍼널 파이프라인 운영','자동화·툴링 선호'], risks: ['단기 최적화 편향','고객 경험 희석','브랜드 리스크'], tips: ['고객 스토리 월1 발표','경험지표(반복사용률) 도입','브랜드 가이드 체크'] },
+      'B-I-P': { name: '비전 플래너 🌉', tagline: '큰 그림과 스토리로 조직을 묶고, 착실히 전개', strengths: ['내러티브·정렬 강점','로드맵 거버넌스','스테이크홀더 관리'], risks: ['검증 지연','현장 신호 둔감','속도 저하'], tips: ['초기 지표 가드레일','탐색 스프린트 의무화','현장 동행·사용성 테스트'] },
+      'B-I-B': { name: '비전 드라이버 🚀', tagline: '시장의 타이밍을 읽고 우직하게 돌파', strengths: ['결단력·스피드','하이레벨 방향성','제로→원 추진'], risks: ['근거 빈약/리스크 증폭','팀 번아웃','재작업 증가'], tips: ['데이터 파트너 페어링','스코프 슬라이싱','주간 리스크 리뷰'] },
+    };
+
+    // ====== Render Questions ======
+    const formEl = document.getElementById('quizForm');
+    function renderQuestions(){
+      const frag = document.createDocumentFragment();
+      QUESTIONS.forEach((q, idx)=>{
+        const wrap = document.createElement('div');
+        wrap.className = 'qcard';
+        wrap.innerHTML = `
+          <div class="qhead">
+            <div class="qidx">Q${idx+1}</div>
+            <div style="flex:1">
+              <div style="font-weight:600">${q.text}</div>
+              <div style="margin-top:8px">
+                <input class="range" type="range" min="1" max="5" step="1" value="3" name="q_${q.id}" data-qid="${q.id}">
+                <div class="barrow"><span>강하게 반대</span><span>중립</span><span>강하게 동의</span></div>
+              </div>
+              <div class="xsmall muted" style="margin-top:6px">축: ${AXES[q.axis].long}</div>
+            </div>
+          </div>`;
+        frag.appendChild(wrap);
+      });
+      formEl.appendChild(frag);
+    }
+
+    // ====== Progress ======
+    const progressCountEl = document.getElementById('progressCount');
+    const progressBarEl = document.getElementById('progressBar');
+    function updateProgress(){
+      const values = getAnswers();
+      const answered = values.filter(v=>v!==null).length;
+      progressCountEl.textContent = answered.toString();
+      const pct = Math.round((answered/QUESTIONS.length)*100);
+      progressBarEl.style.width = pct+'%';
+    }
+
+    // ====== Answers ======
+    function getAnswers(){
+      return QUESTIONS.map(q=>{
+        const el = formEl.querySelector(`[name="q_${q.id}"]`);
+        if(!el) return null; const v = parseInt(el.value,10); return isNaN(v)?null:v;
+      });
+    }
+    function likertToScore(v){ return v-3; } // -2..+2
+
+    function computeScores(){
+      const answers = getAnswers();
+      if(answers.some(v=>v===null)) return { ok:false, reason:'모든 문항에 응답해주세요.' };
+      const agg={F:0,D:0,E:0}, counts={F:0,D:0,E:0};
+      QUESTIONS.forEach((q,i)=>{
+        const raw = answers[i]; const m = likertToScore(raw);
+        const dir = (q.polePositive===AXES[q.axis].anchor)?1:-1;
+        agg[q.axis]+= dir*m; counts[q.axis]+=1;
+      });
+      const Fpole = agg.F>=0?'U':'B'; const Dpole = agg.D>=0?'D':'I'; const Epole = agg.E>=0?'P':'B';
+      function toPercent(axis){ const max=2*counts[axis]; const normalized=(agg[axis]+max)/(2*max); return Math.round(normalized*100); }
+      const pct={F:toPercent('F'),D:toPercent('D'),E:toPercent('E')};
+      const code=`${Fpole}-${Dpole}-${Epole}`; return {ok:true, agg, counts, pct, code, Fpole, Dpole, Epole};
+    }
+
+    // ====== Result UI ======
+    const resultSection = document.getElementById('resultSection');
+    const typeTitle = document.getElementById('typeTitle');
+    const typeCode = document.getElementById('typeCode');
+    const typeTagline = document.getElementById('typeTagline');
+    const traitLists = document.getElementById('traitLists');
+    const profileBars = document.getElementById('profileBars');
+    const radarCanvas = document.getElementById('radar');
+
+    function barHTML(axisKey, valueAnchorPct){
+      const leftLabel = AXES[axisKey].labelPos; const rightLabel = AXES[axisKey].labelNeg;
+      const leftPct = valueAnchorPct; const rightPct = 100-leftPct;
+      return `
+        <div>
+          <div class="barrow"><span>${leftLabel}</span><span>${rightLabel}</span></div>
+          <div class="meter" style="margin-top:4px"><div style="width:${leftPct}%"></div></div>
+          <div class="barrow" style="margin-top:4px"><span>${leftPct}%</span><span>${rightPct}%</span></div>
+        </div>`;
+    }
+
+    function renderRadar(values){
+      const ctx = radarCanvas.getContext('2d');
+      const w = radarCanvas.width, h = radarCanvas.height; ctx.clearRect(0,0,w,h);
+      const cx = w/2, cy = h/2 + 10; const R = Math.min(w,h)*0.35; const N=3; const step=0.2;
+
+      // grid
+      ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=1;
+      for(let t=step;t<=1.0001;t+=step){
+        ctx.beginPath();
+        for(let i=0;i<N;i++){
+          const ang = -Math.PI/2 + i*(2*Math.PI/N);
+          const x = cx + Math.cos(ang)*R*t; const y = cy + Math.sin(ang)*R*t;
+          if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        }
+        ctx.closePath(); ctx.stroke();
+      }
+      // axes
+      ctx.strokeStyle='rgba(255,255,255,.25)';
+      for(let i=0;i<N;i++){
+        const ang = -Math.PI/2 + i*(2*Math.PI/N);
+        ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(ang)*R, cy+Math.sin(ang)*R); ctx.stroke();
+      }
+      // polygon
+      const pts=[]; const vals = values.map(v=>Math.max(0,Math.min(100,v))/100);
+      for(let i=0;i<N;i++){
+        const ang = -Math.PI/2 + i*(2*Math.PI/N);
+        const r = R*vals[i]; pts.push({x:cx+Math.cos(ang)*r, y:cy+Math.sin(ang)*r});
+      }
+      ctx.beginPath(); pts.forEach((p,i)=> i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.closePath();
+      ctx.fillStyle='rgba(56,189,248,.25)'; ctx.strokeStyle='rgba(56,189,248,.9)'; ctx.lineWidth=2; ctx.fill(); ctx.stroke();
+
+      // labels
+      const labels=['User','Data','Planner']; ctx.fillStyle='rgba(203,213,225,1)'; ctx.font='12px system-ui';
+      for(let i=0;i<N;i++){
+        const ang = -Math.PI/2 + i*(2*Math.PI/N); const lx=cx+Math.cos(ang)*(R+16), ly=cy+Math.sin(ang)*(R+16);
+        const text = labels[i]; const tw = ctx.measureText(text).width;
+        ctx.fillText(text, lx - tw/2, ly+4);
+      }
+    }
+
+    function renderResult(model){
+      const type = TYPE_MAP[model.code] || { name:'하이브리드 PM 🌗', tagline:'축 간 균형이 좋은 제너럴리스트', strengths:['다양한 관점 통합','상황 적응력','협업 친화'], risks:['결정 지연','전문화 부족','우선순위 모호'], tips:['핵심 역량 1가지 심화','결정 기한 명시','지표·내러티브 균형'] };
+      typeTitle.textContent = type.name;
+      typeCode.textContent = `유형 코드: ${model.code} · (User/Biz, Data/Intuition, Planner/Builder)`;
+      typeTagline.textContent = type.tagline;
+
+      profileBars.innerHTML = [
+        barHTML('F', model.pct.F),
+        barHTML('D', model.pct.D),
+        barHTML('E', model.pct.E),
+      ].join('');
+      renderRadar([model.pct.F, model.pct.D, model.pct.E]);
+
+      traitLists.innerHTML = `
+        <div>
+          <div class="muted" style="font-weight:600;margin-bottom:4px">강점</div>
+          <ul class="list">${type.strengths.map(x=>`<li>${x}</li>`).join('')}</ul>
+        </div>
+        <div>
+          <div class="muted" style="font-weight:600;margin-bottom:4px">리스크</div>
+          <ul class="list">${type.risks.map(x=>`<li>${x}</li>`).join('')}</ul>
+        </div>
+        <div>
+          <div class="muted" style="font-weight:600;margin-bottom:4px">협업 팁</div>
+          <ul class="list">${type.tips.map(x=>`<li>${x}</li>`).join('')}</ul>
+        </div>`;
+
+      const deltas=[{k:'F',v:Math.abs(model.pct.F-50)},{k:'D',v:Math.abs(model.pct.D-50)},{k:'E',v:Math.abs(model.pct.E-50)}].sort((a,b)=>a.v-b.v);
+      const weak = deltas[0].k; const axisName = AXES[weak].long; const pole = weak==='F'?model.Fpole:weak==='D'?model.Dpole:model.Epole;
+      const opp = (weak==='F'&&pole==='U')?'Biz':(weak==='F'&&pole==='B')?'User':(weak==='D'&&pole==='D')?'Intuition':(weak==='D'&&pole==='I')?'Data':(weak==='E'&&pole==='P')?'Builder':'Planner';
+      document.getElementById('partnerTip').textContent = `현재 ${axisName} 축에서 균형형입니다. ${opp} 강점을 가진 동료와 페어링하면 시너지가 큽니다.`;
+
+      resultSection.style.display='grid';
+      resultSection.scrollIntoView({behavior:'smooth',block:'start'});
+    }
+
+    // ====== Share / Copy / Print ======
+    const shareBtn = document.getElementById('shareBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const printBtn = document.getElementById('printBtn');
+
+    function currentSharePayload(){
+      const t = typeTitle.textContent || 'PM Type Finder';
+      const code = typeCode.textContent || '';
+      const tag = typeTagline.textContent || '';
+      const f = document.querySelector('#profileBars > div:nth-child(1) .barrow span:first-child')?.textContent || 'User';
+      const d = document.querySelector('#profileBars > div:nth-child(2) .barrow span:first-child')?.textContent || 'Data';
+      const p = document.querySelector('#profileBars > div:nth-child(3) .barrow span:first-child')?.textContent || 'Planner';
+      return { title: t, text: `${code}
+${tag}
+${f} / ${d} / ${p}` };
+    }
+
+    shareBtn.addEventListener('click', async (e)=>{
+      e.preventDefault(); const {text,title}=currentSharePayload();
+      if(navigator.share){ try{ await navigator.share({title, text, url: location.href}); }catch(_){} }
+      else{ try{ await navigator.clipboard.writeText(`${title}
+
+${text}
+${location.href}`); shareBtn.textContent='복사 완료 ✅'; setTimeout(()=>shareBtn.textContent='웹 공유',1200); }catch(_){}}
+    });
+    copyBtn.addEventListener('click', async (e)=>{
+      e.preventDefault(); const {text,title}=currentSharePayload();
+      try{ await navigator.clipboard.writeText(`${title}
+
+${text}`); copyBtn.textContent='복사 완료 ✅'; setTimeout(()=>copyBtn.textContent='복사',1200);}catch(_){}}
+    );
+    printBtn.addEventListener('click', (e)=>{ e.preventDefault(); window.print(); });
+
+    // ====== Events ======
+    document.getElementById('submitBtn').addEventListener('click', ()=>{ const res=computeScores(); if(!res.ok){alert(res.reason);return;} renderResult(res); });
+    document.getElementById('resetBtn').addEventListener('click', ()=>{ formEl.querySelectorAll('input[type="range"]').forEach(el=>el.value=3); resultSection.style.display='none'; updateProgress(); window.scrollTo({top:0,behavior:'smooth'}); });
+    formEl.addEventListener('input', (e)=>{ if(e.target && e.target.matches('input[type="range"])')) updateProgress(); });
+
+    // ====== Init ======
+    renderQuestions(); updateProgress();
+  </script>
+</body>
+</html>
